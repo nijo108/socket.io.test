@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+
+      #target { width: 600px; height: 423px; background-image: url("mouse.jpg"); border: 2px solid #00F; }
+      #graph { width: 600px; height: 200px; position: fixed; bottom: 0; left: 0; border: 2px solid;}
+      #uuid { width:200px; height:20px; position: fixed; right: 0; top: 0;}
+
+    </style>
+  </head>
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/lodash.js/2.4.1/lodash.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/d3/3.4.13/d3.min.js"></script>
+
+  <body>
+    <div id="uuid">null</div>
+    <svg id="target"></svg>
+    <script>
+
+    var genRandCol = function() {
+      return "#"+((1<<24)*Math.random()|0).toString(16);
+    }
+
+    var id;
+    var svg = d3.select("svg");
+    var color;
+    var X = {};
+
+    $( document ).ready( function () {
+      
+      var socket = io();
+
+      socket.on('connect',function(){
+        id = socket.io.engine.id;
+        color = genRandCol();
+        $('#uuid').html(id)
+      })
+
+      socket.on('mouse', function(msg){
+        var data = JSON.parse(msg);
+        X[data.id]=data;
+        svg.selectAll('circle')
+          .data(_.values(X))
+          .attr('cy', function(d){ return d.y;})
+          .attr('cx', function(d){ return d.x;})
+          .enter().append('circle')
+          .attr('cy', function(d){ return d.y;})
+          .attr('cx', function(d){ return d.x;})
+          .attr('r',5)
+          .style('fill',function(d){ return d.color; });
+      });
+
+      $('#target').mousemove( function(event) {
+        if (id === null) return;
+        var data = { id: id , color: color , x: event.pageX , y: event.pageY };
+        socket.emit('mouse', JSON.stringify(data) );
+      });
+
+    });
+  </script>
+  </body>
+</html>
